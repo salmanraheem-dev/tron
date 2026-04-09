@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TRON dApp - WalletConnect</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
     <style>
         * {
             margin: 0;
@@ -245,6 +246,46 @@
             color: #666;
             margin-top: 10px;
         }
+
+        .qr-container {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .qr-container.active {
+            display: block;
+        }
+
+        .qr-container canvas {
+            margin: 0 auto;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+        }
+
+        .qr-label {
+            color: #666;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .toggle-qr {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .toggle-qr:hover {
+            background: #764ba2;
+        }
     </style>
 </head>
 <body>
@@ -257,6 +298,13 @@
         <!-- Wallet Connection Section -->
         <div class="connect-section">
             <button id="connectBtn" class="btn btn-primary">Connect TrustWallet</button>
+            <button id="toggleQrBtn" class="toggle-qr" style="display: none;">Show QR Code</button>
+            
+            <div id="qrContainer" class="qr-container">
+                <canvas id="qrCanvas"></canvas>
+                <div class="qr-label">Scan with TrustWallet</div>
+            </div>
+
             <button id="disconnectBtn" class="btn btn-secondary" style="display: none;">Disconnect</button>
             
             <div id="walletInfo" class="wallet-info">
@@ -302,6 +350,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tronweb@latest/dist/TronWeb.js"></script>
@@ -320,10 +369,14 @@
         let web3Provider = null;
         let tronWeb = null;
         let currentAccount = null;
+        let wcUri = null;
 
         // UI Elements
         const connectBtn = document.getElementById('connectBtn');
         const disconnectBtn = document.getElementById('disconnectBtn');
+        const toggleQrBtn = document.getElementById('toggleQrBtn');
+        const qrContainer = document.getElementById('qrContainer');
+        const qrCanvas = document.getElementById('qrCanvas');
         const walletInfo = document.getElementById('walletInfo');
         const walletAddress = document.getElementById('walletAddress');
         const balanceEl = document.getElementById('balance');
@@ -338,10 +391,31 @@
         function initTronWeb(address) {
             tronWeb = new TronWeb({
                 fullHost: CONFIG.RPC_URL,
-                privateKey: '', // Not needed for read-only operations
+                privateKey: '',
                 headers: { 'YWVT-UUID': 'YOUR-UUID-HERE' }
             });
         }
+
+        // Generate QR Code
+        function generateQRCode(uri) {
+            qrCanvas.innerHTML = '';
+            new QRCode(qrCanvas, {
+                text: uri,
+                width: 200,
+                height: 200,
+                colorDark: '#667eea',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Toggle QR Code Display
+        toggleQrBtn.addEventListener('click', () => {
+            qrContainer.classList.toggle('active');
+            toggleQrBtn.textContent = qrContainer.classList.contains('active') 
+                ? 'Hide QR Code' 
+                : 'Show QR Code';
+        });
 
         // Connect Wallet
         connectBtn.addEventListener('click', async () => {
@@ -357,6 +431,16 @@
                     }
                 });
 
+                // Get connection URI
+                provider.on('display_uri', (uri) => {
+                    console.log('WalletConnect URI:', uri);
+                    wcUri = uri;
+                    generateQRCode(uri);
+                    qrContainer.classList.add('active');
+                    toggleQrBtn.style.display = 'inline-block';
+                    showStatus(tronStatus, 'Scan QR code with TrustWallet', 'info');
+                });
+
                 // Subscribe to connection events
                 provider.on('connect', (payload) => {
                     console.log('Connected:', payload);
@@ -370,13 +454,30 @@
                     onWalletDisconnected();
                 });
 
+                provider.on('chain_changed', (chainId) => {
+                    console.log('Chain changed:', chainId);
+                });
+
+                provider.on('accounts_changed', (accounts) => {
+                    console.log('Accounts changed:', accounts);
+                    if (accounts.length > 0) {
+                        onWalletConnected(accounts[0]);
+                    } else {
+                        onWalletDisconnected();
+                    }
+                });
+
                 // Connect
                 await provider.enable();
                 web3Provider = provider;
 
             } catch (error) {
                 console.error('Connection error:', error);
-                showStatus(tronStatus, `Error: ${error.message}`, 'error');
+                if (error.message.includes('QR')) {
+                    showStatus(tronStatus, 'Scan the QR code with TrustWallet', 'info');
+                } else {
+                    showStatus(tronStatus, `Error: ${error.message}`, 'error');
+                }
             }
         });
 
@@ -388,6 +489,8 @@
             walletAddress.textContent = address;
             walletInfo.classList.add('active');
             connectBtn.style.display = 'none';
+            toggleQrBtn.style.display = 'none';
+            qrContainer.classList.remove('active');
             disconnectBtn.style.display = 'block';
             tronAmountInput.disabled = false;
             sendTronBtn.disabled = false;
@@ -410,7 +513,9 @@
             tronWeb = null;
 
             walletInfo.classList.remove('active');
+            qrContainer.classList.remove('active');
             connectBtn.style.display = 'block';
+            toggleQrBtn.style.display = 'none';
             disconnectBtn.style.display = 'none';
             tronAmountInput.disabled = true;
             sendTronBtn.disabled = true;
