@@ -1,39 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TRON Payment</title>
+  <title>Pay USDT (TRON)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
 
-<h2>Pay with TRON USDT</h2>
+<body style="font-family:sans-serif; text-align:center; padding:40px;">
 
-<input id="amount" placeholder="Enter USDT amount" />
-<button onclick="pay()">Pay Now</button>
+  <h2>Pay with USDT (TRON)</h2>
 
-<script>
-function pay() {
-  const amount = document.getElementById("amount").value;
+  <!-- Amount input -->
+  <input 
+    id="amount" 
+    type="number" 
+    placeholder="Enter amount (USDT)" 
+    style="padding:10px; font-size:16px;"
+  />
 
-  // Your TRON address
-  const to = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
+  <br><br>
 
-  // USDT TRC20 contract
-  const contract = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+  <button 
+    onclick="pay()" 
+    style="padding:12px 25px; font-size:16px; cursor:pointer;"
+  >
+    Pay Now
+  </button>
 
-  // Convert amount to SUN (6 decimals)
-  const value = parseFloat(amount) * 1e6;
+  <script>
+    function pay() {
+      const amount = document.getElementById("amount").value;
 
-  // Encode transfer(address,uint256)
-  const data =
-    "a9059cbb" +
-    to.replace("T", "").padStart(64, "0") +
-    value.toString(16).padStart(64, "0");
+      if (!amount || amount <= 0) {
+        alert("Enter valid amount");
+        return;
+      }
 
-  const url = `https://link.trustwallet.com/send?coin=195&contract=${contract}&data=${data}`;
+      // 🔴 YOUR TRON RECEIVING ADDRESS
+      const to = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
 
-  window.location.href = url;
-}
-</script>
+      // 🔴 USDT TRC20 contract
+      const contract = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+      // Convert amount to SUN (6 decimals)
+      const value = Math.floor(parseFloat(amount) * 1e6);
+
+      // Encode transfer(address,uint256)
+      function encodeTransfer(to, value) {
+        const method = "a9059cbb"; // transfer()
+        
+        const addressHex = to
+          .replace(/^T/, "41") // TRON base58 → hex prefix
+          .padStart(64, "0");
+
+        const amountHex = value
+          .toString(16)
+          .padStart(64, "0");
+
+        return method + addressHex + amountHex;
+      }
+
+      const data = encodeTransfer(to, value);
+
+      // ✅ Deep link
+      const url = `https://link.trustwallet.com/send?coin=195&contract=${contract}&data=${data}`;
+
+      // Open Trust Wallet
+      window.location.href = url;
+    }
+  </script>
 
 </body>
 </html>
